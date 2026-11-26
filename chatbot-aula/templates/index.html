@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chatbot da Aula</title>
+<!-- Este arquivo já vem pronto. Não precisa mexer aqui :) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<style>
+  :root {
+    --fundo: #f4f5f7; --cartao: #ffffff; --texto: #2d3340; --suave: #6b7280;
+    --escuro: #363636; --azul: #2f6fdf; --rosa: #e64a8b; --verde: #3bb273; --amarelo: #f5b700;
+    --bolha-bot: #f0f2f5; --borda: #e3e6ea;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--fundo); color: var(--texto);
+    font-family: "Source Sans 3", system-ui, sans-serif; font-size: 17px;
+    display: flex; justify-content: center;
+  }
+  .app {
+    width: 100%; max-width: 760px; height: 100%;
+    display: flex; flex-direction: column; background: var(--cartao);
+    box-shadow: 0 0 40px rgba(0,0,0,.06);
+  }
+  header {
+    background: var(--escuro); color: #fff; padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; font-size: 22px;
+    background: linear-gradient(135deg, var(--rosa), var(--azul));
+  }
+  header h1 { font-family: Poppins, sans-serif; font-size: 19px; font-weight: 600; margin: 0; }
+  header p { margin: 2px 0 0; font-size: 14px; color: #c9ccd1; }
+  .status { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); display: inline-block; margin-right: 6px; }
+  .barra { display: flex; height: 5px; }
+  .barra span { flex: 1; }
+  #limpar {
+    margin-left: auto; background: transparent; color: #c9ccd1; border: 1px solid #555;
+    border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; cursor: pointer;
+  }
+  #limpar:hover { color: #fff; border-color: #888; }
+
+  #mensagens { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 82%; padding: 11px 15px; border-radius: 18px; line-height: 1.45; word-wrap: break-word; animation: entra .18s ease-out; }
+  .msg p { margin: 0 0 8px; } .msg p:last-child { margin: 0; }
+  .msg ul, .msg ol { margin: 4px 0; padding-left: 22px; }
+  .msg code { background: rgba(0,0,0,.07); padding: 1px 5px; border-radius: 5px; font-size: 15px; }
+  .msg pre { background: #272a30; color: #f1f1f1; padding: 10px; border-radius: 10px; overflow-x: auto; }
+  .msg pre code { background: none; color: inherit; }
+  .usuario { align-self: flex-end; background: var(--azul); color: #fff; border-bottom-right-radius: 5px; }
+  .bot { align-self: flex-start; background: var(--bolha-bot); border-bottom-left-radius: 5px; }
+  .erro { align-self: center; background: #fdecec; color: #b42318; font-size: 15px; border-radius: 10px; }
+  @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
+
+  .digitando span { display: inline-block; width: 7px; height: 7px; margin: 0 2px; border-radius: 50%; background: var(--suave); animation: pula 1.1s infinite; }
+  .digitando span:nth-child(2) { animation-delay: .15s; } .digitando span:nth-child(3) { animation-delay: .3s; }
+  @keyframes pula { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-4px); } }
+
+  #sugestoes { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 12px; }
+  #sugestoes button {
+    border: 1px solid var(--borda); background: #fff; color: var(--texto); border-radius: 999px;
+    padding: 7px 13px; font: inherit; font-size: 15px; cursor: pointer;
+  }
+  #sugestoes button:hover { border-color: var(--azul); color: var(--azul); }
+
+  form { display: flex; gap: 10px; padding: 14px 20px 18px; border-top: 1px solid var(--borda); }
+  #entrada {
+    flex: 1; border: 1px solid var(--borda); border-radius: 12px; padding: 12px 14px;
+    font: inherit; outline: none; min-width: 0;
+  }
+  #entrada:focus { border-color: var(--azul); box-shadow: 0 0 0 3px rgba(47,111,223,.15); }
+  #enviar {
+    border: 0; border-radius: 12px; padding: 0 20px; background: var(--azul); color: #fff;
+    font-family: Poppins, sans-serif; font-weight: 500; font-size: 16px; cursor: pointer;
+  }
+  #enviar:disabled { opacity: .5; cursor: default; }
+
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    header, #mensagens, form, #sugestoes { padding-left: 16px; padding-right: 16px; }
+    .msg { max-width: 90%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="avatar">🤖</div>
+    <div>
+      <h1 id="nome-bot">Chatbot da Aula</h1>
+      <p><span class="status"></span>online</p>
+    </div>
+    <button id="limpar" type="button" title="Começar uma conversa nova">Nova conversa</button>
+  </header>
+  <div class="barra"><span style="background:var(--rosa)"></span><span style="background:var(--azul)"></span><span style="background:var(--verde)"></span><span style="background:var(--amarelo)"></span></div>
+
+  <div id="mensagens"></div>
+
+  <div id="sugestoes">
+    <button type="button">Oi! O que você sabe fazer?</button>
+    <button type="button">Explica o que é um chatbot</button>
+    <button type="button">Me conta uma curiosidade sobre IA</button>
+  </div>
+
+  <form id="form">
+    <input id="entrada" autocomplete="off" placeholder="Escreva sua mensagem..." autofocus>
+    <button id="enviar" type="submit">Enviar</button>
+  </form>
+</div>
+
+<script>
+  // Cada aba do navegador ganha um "usuario" próprio, para o bot lembrar da conversa.
+  function novoUsuario() { return "web-" + Math.random().toString(36).slice(2, 10); }
+  let usuario;
+  try { usuario = sessionStorage.getItem("usuario") || novoUsuario(); sessionStorage.setItem("usuario", usuario); }
+  catch (e) { usuario = novoUsuario(); }
+
+  const caixa = document.getElementById("mensagens");
+  const form = document.getElementById("form");
+  const entrada = document.getElementById("entrada");
+  const enviar = document.getElementById("enviar");
+
+  function mostrar(texto, quem) {
+    const div = document.createElement("div");
+    div.className = "msg " + quem;
+    if (quem === "bot") div.innerHTML = DOMPurify.sanitize(marked.parse(texto));
+    else div.textContent = texto;
+    caixa.appendChild(div);
+    caixa.scrollTop = caixa.scrollHeight;
+    return div;
+  }
+
+  async function mandar(texto) {
+    texto = texto.trim();
+    if (!texto) return;
+    document.getElementById("sugestoes").style.display = "none";
+    mostrar(texto, "usuario");
+    entrada.value = ""; enviar.disabled = true;
+
+    const pensando = mostrar("", "bot");
+    pensando.innerHTML = '<span class="digitando"><span></span><span></span><span></span></span>';
+
+    try {
+      // >>> É AQUI que a página conversa com o nosso backend Python <<<
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario: usuario, mensagem: texto })
+      });
+      pensando.remove();
+      if (!resp.ok) throw new Error("O servidor respondeu " + resp.status + (resp.status === 404 ? ": a rota /api/chat ainda não existe no app.py" : ""));
+      const dados = await resp.json();
+      mostrar(dados.resposta, "bot");
+    } catch (e) {
+      pensando.remove();
+      mostrar("⚠️ " + e.message, "erro");
+    }
+    enviar.disabled = false; entrada.focus();
+  }
+
+  form.addEventListener("submit", (e) => { e.preventDefault(); mandar(entrada.value); });
+  document.querySelectorAll("#sugestoes button").forEach(b => b.addEventListener("click", () => mandar(b.textContent)));
+  document.getElementById("limpar").addEventListener("click", () => {
+    usuario = novoUsuario();
+    try { sessionStorage.setItem("usuario", usuario); } catch (e) {}
+    caixa.innerHTML = "";
+    document.getElementById("sugestoes").style.display = "";
+    mostrar("Conversa nova! Pode mandar.", "bot");
+  });
+
+  mostrar("Olá! Eu sou o chatbot da aula. Pode me perguntar qualquer coisa.", "bot");
+</script>
+</body>
+</html>

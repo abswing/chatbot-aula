@@ -1,0 +1,5 @@
+google-genai
+flask
+python-telegram-bot
+python-dotenv
+truststore
